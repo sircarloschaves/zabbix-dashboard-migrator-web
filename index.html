@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Zabbix Dashboard Migrator · Web</title>
+  <meta name="description" content="Migração de dashboards globais Zabbix com diagnóstico, exportação JSON e importação segura.">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand"><div class="brand-icon">Z</div><div><strong>Dashboard Migrator</strong><small>Web Edition · 0.1</small></div></div>
+      <div class="aside-title">FLUXO DE TRABALHO</div>
+      <nav id="nav">
+        <button data-view="connections" class="nav-btn active"><span class="number">01</span> Conexões</button>
+        <button data-view="export" class="nav-btn"><span class="number">02</span> Exportar</button>
+        <button data-view="import" class="nav-btn"><span class="number">03</span> Importar</button>
+        <button data-view="logs" class="nav-btn"><span class="number">04</span> Diagnóstico</button>
+      </nav>
+      <div class="aside-footer">
+        <p><span class="dot"></span> Execução no navegador</p>
+        <small>Tokens mantidos apenas na memória desta aba. Não são salvos no GitHub.</small>
+      </div>
+    </aside>
+    <main class="content">
+      <header class="topbar"><div><span class="crumb">FERRAMENTAS</span><span class="slash"> / </span><span id="crumb-current">Conexões</span></div><div class="top-actions"><span class="pill muted">Dashboards globais</span><a href="https://www.zabbix.com/documentation/7.0/en/manual/api/reference/dashboard" target="_blank" rel="noopener noreferrer" class="doc-link">API Zabbix ↗</a></div></header>
+      <div class="workspace">
+        <section class="hero"><span class="eyebrow">ZABBIX · MIGRATION STUDIO</span><h1>Migre dashboards com <em>controle.</em></h1><p>Exporte, avalie a compatibilidade e importe dashboards entre ambientes Zabbix sem sobrescrever os existentes.</p></section>
+        <div id="notice" class="alert" hidden></div>
+        <section id="view-connections" class="view">
+          <div class="section-heading"><div><h2>Conectar ambientes</h2><p>Informe os endpoints oficiais da API e os tokens de acesso.</p></div><span class="label-step">ETAPA 01</span></div>
+          <div class="two-col">
+            <article class="panel">
+              <div class="panel-head"><div><span class="env-label">AMBIENTE DE ORIGEM</span><h3>Exportação</h3></div><span id="src-status" class="status">Não testado</span></div>
+              <label for="src-ver">Versão esperada</label><select id="src-ver"><option>7.4</option><option>7.2</option><option>7.0</option></select>
+              <label for="src-url">URL da API</label><input id="src-url" spellcheck="false" placeholder="https://zabbix-origem/api_jsonrpc.php" autocomplete="off">
+              <label for="src-token">API Token (somente leitura)</label><div class="input-row"><input id="src-token" type="password" autocomplete="off" placeholder="Cole seu token"><button class="subtle icon-btn" type="button" data-toggle="src-token" aria-label="Exibir token">◉</button></div>
+              <button id="btn-src-test" class="outline full">Testar conexão com origem</button>
+              <div id="src-result" class="helper">Testa a versão real e a permissão <code>dashboard.get</code>.</div>
+            </article>
+            <article class="panel">
+              <div class="panel-head"><div><span class="env-label">AMBIENTE DE DESTINO</span><h3>Importação</h3></div><span id="dst-status" class="status">Não testado</span></div>
+              <label for="dst-ver">Versão esperada</label><select id="dst-ver"><option>7.0</option><option>7.2</option><option>7.4</option></select>
+              <label for="dst-url">URL da API</label><input id="dst-url" spellcheck="false" placeholder="https://zabbix-destino/api_jsonrpc.php" autocomplete="off">
+              <label for="dst-token">API Token (com permissão de criação)</label><div class="input-row"><input id="dst-token" type="password" autocomplete="off" placeholder="Cole seu token"><button class="subtle icon-btn" type="button" data-toggle="dst-token" aria-label="Exibir token">◉</button></div>
+              <button id="btn-dst-test" class="outline full">Testar conexão com destino</button>
+              <div id="dst-result" class="helper">Testa a versão real e a permissão <code>dashboard.get</code>.</div>
+            </article>
+          </div>
+          <div class="info-callout"><strong>Importante: acesso do navegador</strong><p>O GitHub Pages não atua como proxy. Seu computador deve alcançar as APIs por HTTPS, e o Zabbix precisa permitir CORS. Falhas de CORS/rede podem exigir um conector local.</p></div>
+          <button class="primary next" data-go="export">Ir para exportação <span>→</span></button>
+        </section>
+        <section id="view-export" class="view" hidden>
+          <div class="section-heading"><div><h2>Exportar dashboards</h2><p>Liste os dashboards acessíveis e gere um JSON compatível com nosso migrador Python.</p></div><span class="label-step">ETAPA 02</span></div>
+          <article class="panel">
+            <div class="inline-actions"><div><h3>Dashboards da origem</h3><span id="export-count" class="helper">Clique para consultar a API.</span></div><button id="btn-list" class="outline">Atualizar listagem</button></div>
+            <div class="searchline"><input id="search-dashboard" placeholder="Filtrar por nome..." autocomplete="off"><button id="select-all" class="subtle">Selecionar visíveis</button><button id="clear-all" class="subtle">Limpar</button></div>
+            <div id="dashboard-list" class="dash-list"><div class="empty">Nenhuma consulta realizada.</div></div>
+            <div class="button-line"><span id="selected-count">0 selecionados</span><button id="btn-export" class="primary">Exportar JSON <span>↓</span></button></div>
+          </article>
+          <div class="info-callout"><strong>Um dashboard ou vários</strong><p>Selecione um para gerar o formato tradicional <code>export_version: 5</code>. Com vários selecionados, será gerado um único arquivo bundle, que também pode ser importado por este site.</p></div>
+        </section>
+        <section id="view-import" class="view" hidden>
+          <div class="section-heading"><div><h2>Preparar importação</h2><p>Importe o JSON, remapeie referências e só crie após uma confirmação explícita.</p></div><span class="label-step">ETAPA 03</span></div>
+          <article class="panel">
+            <div class="inline-actions"><div><h3>Arquivo exportado</h3><p class="helper">Aceita JSON da versão Python v7 e arquivos deste site.</p></div><span class="pill muted">JSON</span></div>
+            <input type="file" id="import-file" accept=".json,application/json">
+            <label for="import-dash">Dashboard do arquivo</label><select id="import-dash"><option value="">Selecione um arquivo</option></select>
+            <div id="import-summary" class="summary-placeholder">Carregue um arquivo para visualizar páginas e widgets.</div>
+          </article>
+          <div class="two-col split-mid">
+            <article class="panel">
+              <h3>Opções de migração</h3>
+              <label for="new-name">Nome no destino</label><input id="new-name" placeholder="MIGRACAO - Nome do Dashboard">
+              <label for="migration-mode">Modo de importação</label>
+              <select id="migration-mode"><option value="complete">Completa · tentar remapear referências</option><option value="layout">Somente layout · remover IDs de ambiente</option></select>
+              <div class="checks">
+                <label><input id="skip-unsupported" type="checkbox"> Remover widgets inexistentes no destino</label>
+                <label><input id="skip-unresolved" type="checkbox"> Remover campos com IDs não resolvidos</label>
+                <label><input id="ack-unknown-version" type="checkbox"> Aceito validação manual para versão 7.2</label>
+              </div>
+            </article>
+            <article class="panel">
+              <h3>Validação & criação</h3><p class="helper">O DRY-RUN verifica regras locais, referências e nomes existentes. Não chama <code>dashboard.create</code>.</p>
+              <button id="btn-dryrun" class="outline full">Executar DRY-RUN</button>
+              <div id="report" class="report"><div class="empty">Aguardando análise...</div></div>
+              <label for="apply-confirm">Confirmação manual para criar</label>
+              <input id="apply-confirm" placeholder="CREATE_GLOBAL_DASHBOARD" autocomplete="off">
+              <button id="btn-apply" class="danger full" disabled>Criar dashboard no destino</button>
+              <p class="helper">Nunca executamos update/delete. A criação só ocorre após confirmar.</p>
+            </article>
+          </div>
+          <article class="panel">
+            <div class="inline-actions"><h3>Payload para <code>dashboard.create</code></h3><button id="btn-save-payload" class="subtle" disabled>Baixar payload</button></div>
+            <pre id="payload-preview" class="payload">Execute o DRY-RUN para gerar uma prévia.</pre>
+          </article>
+        </section>
+        <section id="view-logs" class="view" hidden>
+          <div class="section-heading"><div><h2>Diagnóstico</h2><p>Mensagens locais sem tokens e com detalhes de eventuais erros de API.</p></div><span class="label-step">ETAPA 04</span></div>
+          <article class="panel"><div class="inline-actions"><h3>Log de execução</h3><div><button id="btn-copy-logs" class="subtle">Copiar</button><button id="btn-clear-logs" class="subtle">Limpar</button></div></div><pre class="log-console" id="log-output">Aguardando operações.</pre></article>
+        </section>
+        <footer class="page-footer"><span>Zabbix Dashboard Migrator Web · Projeto independente, não oficial</span><span>Interface estática · Sem armazenamento de tokens</span></footer>
+      </div>
+    </main>
+  </div>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
